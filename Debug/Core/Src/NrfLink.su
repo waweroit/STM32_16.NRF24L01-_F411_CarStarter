@@ -1,0 +1,7 @@
+../Core/Src/NrfLink.c:20:16:NrfLink_Init	40	static
+../Core/Src/NrfLink.c:59:16:NrfLink_SendFrame	32	static
+../Core/Src/NrfLink.c:104:16:NrfLink_ReceiveFrame	24	static
+../Core/Src/NrfLink.c:120:21:NrfLink_AsCommunicationLink	32	static
+../Core/Src/NrfLink.c:130:34:NrfLink_AdapterSend	32	static
+../Core/Src/NrfLink.c:150:34:NrfLink_AdapterReceive	24	static
+../Core/Src/NrfLink.c:167:34:MapStatus	16	static

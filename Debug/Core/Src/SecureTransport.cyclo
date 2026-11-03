@@ -1,0 +1,10 @@
+../Core/Src/SecureTransport.c:17:16:allocate_message_id	3
+../Core/Src/SecureTransport.c:31:37:find_reassembly	6
+../Core/Src/SecureTransport.c:49:13:initialize_reassembly	1
+../Core/Src/SecureTransport.c:63:25:SecureTransport_Init	3
+../Core/Src/SecureTransport.c:77:25:SecureTransport_BeginMessage	12
+../Core/Src/SecureTransport.c:124:25:SecureTransport_CreateNextFrame	13
+../Core/Src/SecureTransport.c:203:25:SecureTransport_ProcessFrame	34
+../Core/Src/SecureTransport.c:334:24:SecureTransport_GetLastProtocolStatus	2
+../Core/Src/SecureTransport.c:341:6:SecureTransport_ResetPeerReassembly	5
+../Core/Src/SecureTransport.c:358:13:SecureTransport_StatusToString	10

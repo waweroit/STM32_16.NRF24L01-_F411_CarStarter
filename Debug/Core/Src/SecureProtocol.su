@@ -1,0 +1,15 @@
+../Core/Src/SecureProtocol.c:11:13:put_u32_be	16	static
+../Core/Src/SecureProtocol.c:19:17:get_u32_be	16	static
+../Core/Src/SecureProtocol.c:27:29:find_peer	24	static
+../Core/Src/SecureProtocol.c:40:31:derive_directional_keys	40	static
+../Core/Src/SecureProtocol.c:59:24:SecureProtocol_Init	24	static
+../Core/Src/SecureProtocol.c:76:24:SecureProtocol_AddPeer	32	static
+../Core/Src/SecureProtocol.c:103:24:SecureProtocol_SeedPeerRxState	32	static
+../Core/Src/SecureProtocol.c:123:6:SecureProtocol_BuildNonce	24	static
+../Core/Src/SecureProtocol.c:143:24:SecureProtocol_SerializeFrame	32	static
+../Core/Src/SecureProtocol.c:185:24:SecureProtocol_DeserializeFrame	32	static
+../Core/Src/SecureProtocol.c:228:24:SecureProtocol_CreateFrame	168	static
+../Core/Src/SecureProtocol.c:327:24:SecureProtocol_ProcessFrame	152	static
+../Core/Src/SecureProtocol.c:448:24:SecureProtocol_GenerateSessionId	64	static
+../Core/Src/SecureProtocol.c:481:10:SecureProtocol_GetSessionGeneration	16	static
+../Core/Src/SecureProtocol.c:486:13:SecureProtocol_StatusToString	16	static

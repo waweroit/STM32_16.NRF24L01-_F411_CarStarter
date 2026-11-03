@@ -1,0 +1,7 @@
+../Core/Src/SecureCommunication.c:7:6:SecureCommunication_Init	64	static
+../Core/Src/SecureCommunication.c:69:6:SecureCommunication_AuthorizePeer	24	static
+../Core/Src/SecureCommunication.c:84:25:SecureCommunication_BeginMessage	32	static
+../Core/Src/SecureCommunication.c:105:25:SecureCommunication_CreateNextFrame	32	static
+../Core/Src/SecureCommunication.c:126:25:SecureCommunication_ProcessFrame	40	static
+../Core/Src/SecureCommunication.c:151:24:SecureCommunication_GetLastProtocolStatus	16	static
+../Core/Src/SecureCommunication.c:162:6:SecureCommunication_IsInitialized	16	static
