@@ -53,7 +53,7 @@ void ds18b20_init(ds18b20_t *handle, ow_init_t *init)
  * @param[in] handle: Pointer to the ds18b20 handle.
  * @retval true if busy, false if idle
  */
-inline bool ds18b20_is_busy(ds18b20_t *handle)
+bool ds18b20_is_busy(ds18b20_t *handle)
 {
   assert_param(handle != NULL);
   return ow_is_busy(&handle->ow);
@@ -65,7 +65,7 @@ inline bool ds18b20_is_busy(ds18b20_t *handle)
  * @param[in] handle: Pointer to the ds18b20 handle.
  * @retval Last error code (ow_err_t)
  */
-inline ow_err_t ds18b20_last_error(ds18b20_t *handle)
+ow_err_t ds18b20_last_error(ds18b20_t *handle)
 {
   assert_param(handle != NULL);
   return ow_last_error(&handle->ow);
@@ -77,7 +77,7 @@ inline ow_err_t ds18b20_last_error(ds18b20_t *handle)
  * @param[in] handle: Pointer to the ds18b20 handle.
  * @retval Last error code (ow_err_t)
  */
-inline ow_err_t ds18b20_update_rom_id(ds18b20_t *handle)
+ow_err_t ds18b20_update_rom_id(ds18b20_t *handle)
 {
   assert_param(handle != NULL);
   return ow_update_rom_id(&handle->ow);

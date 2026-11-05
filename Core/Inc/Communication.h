@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-//#include "cmsis_os.h"
+
 #include "CommunicationLink.h"
 #include "SecureCommunication.h"
 
@@ -50,8 +50,9 @@ typedef struct
     SecureCommunication_t *secure;
     CommunicationLink_t link;
     CommunicationRoute_t routes[COMMUNICATION_MAX_ROUTES];
-    osMessageQueueId_t txQueue;
-    osMessageQueueId_t rxQueue;
+    CommunicationMessage_t txQueue[COMMUNICATION_TX_QUEUE_DEPTH];
+    CommunicationMessage_t rxQueue[COMMUNICATION_RX_QUEUE_DEPTH];
+    uint8_t txHead, txCount, rxHead, rxCount;
     CommunicationLinkStatus_t lastLinkStatus;
     SecureTransportStatus_t lastSecureStatus;
     bool initialized;
@@ -73,6 +74,8 @@ bool Communication_Send(Communication_t *context,
                         uint16_t payloadLength);
 
 CommunicationStatus_t Communication_Process(Communication_t *context);
+/* Used during relay pulses: sending does not write receive counters to NOR. */
+CommunicationStatus_t Communication_ProcessTxOnly(Communication_t *context);
 bool Communication_TryReceive(Communication_t *context,
                               CommunicationMessage_t *message);
 bool Communication_IsInitialized(const Communication_t *context);

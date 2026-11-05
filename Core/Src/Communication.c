@@ -25,18 +25,6 @@ bool Communication_Init(Communication_t *context,
     context->lastLinkStatus = COMMUNICATION_LINK_OK;
     context->lastSecureStatus = SECURE_TRANSPORT_OK;
 
-    context->txQueue = osMessageQueueNew(COMMUNICATION_TX_QUEUE_DEPTH,
-                                         sizeof(CommunicationMessage_t),
-                                         NULL);
-    context->rxQueue = osMessageQueueNew(COMMUNICATION_RX_QUEUE_DEPTH,
-                                         sizeof(CommunicationMessage_t),
-                                         NULL);
-
-    if (context->txQueue == NULL || context->rxQueue == NULL)
-    {
-        return false;
-    }
-
     context->initialized = true;
     return true;
 }
@@ -120,7 +108,10 @@ bool Communication_Send(Communication_t *context,
         memcpy(message.payload, payload, payloadLength);
     }
 
-    return osMessageQueuePut(context->txQueue, &message, 0u, 0u) == osOK;
+    if (context->txCount == COMMUNICATION_TX_QUEUE_DEPTH) return false;
+    context->txQueue[(context->txHead + context->txCount) % COMMUNICATION_TX_QUEUE_DEPTH] = message;
+    ++context->txCount;
+    return true;
 }
 
 CommunicationStatus_t Communication_Process(Communication_t *context)
@@ -157,7 +148,17 @@ bool Communication_TryReceive(Communication_t *context,
         return false;
     }
 
-    return osMessageQueueGet(context->rxQueue, message, NULL, 0u) == osOK;
+    if (context->rxCount == 0u) return false;
+    *message = context->rxQueue[context->rxHead];
+    context->rxHead = (context->rxHead + 1u) % COMMUNICATION_RX_QUEUE_DEPTH;
+    --context->rxCount;
+    return true;
+}
+
+CommunicationStatus_t Communication_ProcessTxOnly(Communication_t *context)
+{
+    if (context == NULL || !context->initialized) return COMMUNICATION_NOT_INITIALIZED;
+    return ProcessTx(context);
 }
 
 bool Communication_IsInitialized(const Communication_t *context)
@@ -167,12 +168,14 @@ bool Communication_IsInitialized(const Communication_t *context)
 
 bool Communication_IsTxQueueEmpty(const Communication_t *context)
 {
-    return context != NULL && context->initialized && context->txQueue != NULL && osMessageQueueGetCount(context->txQueue) == 0u;
+    return context != NULL && context->initialized && context->txCount == 0u;
 }
 
 bool Communication_ResetTxQueue(Communication_t *context)
 {
-    return context != NULL && context->initialized && context->txQueue != NULL && osMessageQueueReset(context->txQueue) == osOK;
+    if (context == NULL || !context->initialized) return false;
+    context->txHead = context->txCount = 0u;
+    return true;
 }
 
 CommunicationLinkStatus_t Communication_GetLastLinkStatus(const Communication_t *context)
@@ -289,11 +292,13 @@ static CommunicationStatus_t ProcessRx(Communication_t *context)
     message.messageType = messageType;
     message.payloadLength = messageLength;
 
-    if (osMessageQueuePut(context->rxQueue, &message, 0u, 0u) != osOK)
+    if (context->rxCount == COMMUNICATION_RX_QUEUE_DEPTH)
     {
         return COMMUNICATION_RX_QUEUE_FULL;
     }
 
+    context->rxQueue[(context->rxHead + context->rxCount) % COMMUNICATION_RX_QUEUE_DEPTH] = message;
+    ++context->rxCount;
     return COMMUNICATION_OK;
 }
 
@@ -305,11 +310,14 @@ static CommunicationStatus_t ProcessTx(Communication_t *context)
     SecureTransportStatus_t secureStatus;
     bool messageComplete = false;
 
-    if (osMessageQueueGet(context->txQueue, &message, NULL, 0u) != osOK)
+    if (context->txCount == 0u)
     {
         return COMMUNICATION_IDLE;
     }
 
+    message = context->txQueue[context->txHead];
+    context->txHead = (context->txHead + 1u) % COMMUNICATION_TX_QUEUE_DEPTH;
+    --context->txCount;
     route = FindRoute(context, message.destinationId);
     if (route == NULL)
     {

@@ -3,6 +3,9 @@
 #include <string.h>
 #include "main.h"
 #include "SecureSessionStorage.h"
+#include "CarStorage.h"
+#include "CarConfig.h"
+#include "CommunicationDevices.h"
 
 bool SecureCommunication_Init(SecureCommunication_t *context,
                               uint8_t localDeviceId,
@@ -76,9 +79,12 @@ bool SecureCommunication_AuthorizePeer(
         return false;
     }
 
-    return SecureProtocol_AddPeer(&context->protocol,
-                                  peerDeviceId,
-                                  peerKey) == SECURE_PROTOCOL_OK;
+    if (peerDeviceId != communicationDevices[CAR_ROOT_INDEX].deviceId ||
+        SecureProtocol_AddPeer(&context->protocol, peerDeviceId, peerKey) != SECURE_PROTOCOL_OK)
+        return false;
+    const CarStoredData *data = CarStorage_Get();
+    return SecureProtocol_SeedPeerRxState(&context->protocol, peerDeviceId,
+        data->rootSession, data->rootCounter, data->rootInitialized != 0u) == SECURE_PROTOCOL_OK;
 }
 
 SecureTransportStatus_t SecureCommunication_BeginMessage(
@@ -138,14 +144,27 @@ SecureTransportStatus_t SecureCommunication_ProcessFrame(
         return SECURE_TRANSPORT_INVALID_ARGUMENT;
     }
 
-    return SecureTransport_ProcessFrame(&context->transport,
-                                        frame,
-                                        frameLength,
-                                        messageType,
-                                        message,
-                                        messageBufferSize,
-                                        messageLength,
-                                        sourceDeviceId);
+    if (!CarStorage_Ready()) return SECURE_TRANSPORT_PROTOCOL_ERROR;
+    SecureTransportStatus_t result = SecureTransport_ProcessFrame(&context->transport,
+        frame, frameLength, messageType, message, messageBufferSize, messageLength, sourceDeviceId);
+    if (result == SECURE_TRANSPORT_OK || result == SECURE_TRANSPORT_IN_PROGRESS) {
+        for (unsigned i = 0; i < SECURE_MAX_PEERS; ++i) {
+            SecurePeerContext_t *peer = &context->protocol.peers[i];
+            if (!peer->inUse || !peer->rxCounterInitialized) continue;
+            CarStoredData data = *CarStorage_Get();
+            if (data.rootInitialized && data.rootSession == peer->acceptedRxSessionId &&
+                data.rootCounter == peer->lastAcceptedRxCounter) continue;
+            data.rootInitialized = 1u;
+            data.rootSession = peer->acceptedRxSessionId;
+            data.rootCounter = peer->lastAcceptedRxCounter;
+            /* Persist authenticated receive state BEFORE delivering any command. */
+            if (!CarStorage_Save(&data)) {
+                context->transport.lastProtocolStatus = SECURE_PROTOCOL_STORAGE_ERROR;
+                return SECURE_TRANSPORT_PROTOCOL_ERROR;
+            }
+        }
+    }
+    return result;
 }
 
 SecureProtocolStatus_t SecureCommunication_GetLastProtocolStatus(

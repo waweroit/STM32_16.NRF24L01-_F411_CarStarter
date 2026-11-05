@@ -10,7 +10,7 @@ extern "C" {
 
 /**
  * Returns a new monotonically increasing 24-bit boot counter.
- * The counter is persisted in the reserved last Flash sector.
+ * The counter is persisted in the external W25Q64 journal.
  */
 bool SecureSessionStorage_NextBootCounter(uint32_t *bootCounter);
 

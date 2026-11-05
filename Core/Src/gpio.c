@@ -54,8 +54,10 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(BLUE_LED_GPIO_Port, BLUE_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DEV_SHUTDOWN_SW_Pin|NRF24_CE_Pin|SPI1_NRF24_CS_Pin|SPI1_EEPROM_CS_Pin
+  HAL_GPIO_WritePin(GPIOA, DEV_SHUTDOWN_SW_Pin|NRF24_CE_Pin
                           |StartEngineStopCarButton_Pin, GPIO_PIN_RESET);
+
+  HAL_GPIO_WritePin(GPIOA, SPI1_NRF24_CS_Pin|SPI1_EEPROM_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(DS1820_TempSensor_GPIO_Port, DS1820_TempSensor_Pin, GPIO_PIN_SET);

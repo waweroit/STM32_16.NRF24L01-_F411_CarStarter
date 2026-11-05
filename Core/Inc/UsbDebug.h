@@ -20,7 +20,7 @@ typedef struct
 
 extern volatile UsbDebugStats_t gUsbDebugStats;
 
-bool UsbDebug_CreateOsObjects(void);
+bool UsbDebug_Init(void);
 void UsbDebug_Process(void);
 void Debug(const char *msg);
 void DebugPrintf(const char *format, ...);

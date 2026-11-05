@@ -28,6 +28,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "CarStarter.h"
 
 /* USER CODE END Includes */
 
@@ -99,6 +100,7 @@ int main(void)
   MX_RTC_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+  CarStarter_Init();
 
   /* USER CODE END 2 */
 
@@ -109,6 +111,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    CarStarter_Process();
   }
   /* USER CODE END 3 */
 }

@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include "cmsis_os.h"
+
 #include "usbd_cdc_if.h"
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
@@ -15,22 +15,18 @@ typedef struct
     uint8_t data[USB_DEBUG_MESSAGE_SIZE];
 } UsbDebugMessage_t;
 
-static osMessageQueueId_t usbDebugQueueHandle = NULL;
+static UsbDebugMessage_t queue[USB_DEBUG_QUEUE_DEPTH];
+static uint8_t head, count;
+static bool initialized;
 static uint8_t usbDebugTxBuffer[USB_DEBUG_MESSAGE_SIZE];
 
 volatile UsbDebugStats_t gUsbDebugStats = {0u, 0u, 0u};
 
-bool UsbDebug_CreateOsObjects(void)
+bool UsbDebug_Init(void)
 {
-    if (usbDebugQueueHandle != NULL)
-    {
-        return true;
-    }
-
-    usbDebugQueueHandle = osMessageQueueNew(USB_DEBUG_QUEUE_DEPTH,
-                                            sizeof(UsbDebugMessage_t),
-                                            NULL);
-    return usbDebugQueueHandle != NULL;
+    head = count = 0u;
+    initialized = true;
+    return true;
 }
 
 void Debug(const char *msg)
@@ -38,7 +34,7 @@ void Debug(const char *msg)
     UsbDebugMessage_t message;
     size_t length;
 
-    if (msg == NULL || usbDebugQueueHandle == NULL)
+    if (msg == NULL || !initialized)
     {
         ++gUsbDebugStats.droppedCount;
         return;
@@ -58,8 +54,10 @@ void Debug(const char *msg)
     memcpy(message.data, msg, length);
 
     /* Logging must never block a real-time task. */
-    if (osMessageQueuePut(usbDebugQueueHandle, &message, 0u, 0u) == osOK)
+    if (count < USB_DEBUG_QUEUE_DEPTH)
     {
+        queue[(head + count) % USB_DEBUG_QUEUE_DEPTH] = message;
+        ++count;
         ++gUsbDebugStats.queuedCount;
     }
     else
@@ -148,7 +146,7 @@ void UsbDebug_Process(void)
     USBD_CDC_HandleTypeDef *hcdc;
     UsbDebugMessage_t message;
 
-    if (usbDebugQueueHandle == NULL ||
+    if (!initialized ||
         hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED)
     {
         return;
@@ -160,11 +158,14 @@ void UsbDebug_Process(void)
         return;
     }
 
-    if (osMessageQueueGet(usbDebugQueueHandle, &message, NULL, 0u) != osOK)
+    if (count == 0u)
     {
         return;
     }
 
+    message = queue[head];
+    head = (head + 1u) % USB_DEBUG_QUEUE_DEPTH;
+    --count;
     memcpy(usbDebugTxBuffer, message.data, message.length);
     if (CDC_Transmit_FS(usbDebugTxBuffer, message.length) == USBD_OK)
     {
