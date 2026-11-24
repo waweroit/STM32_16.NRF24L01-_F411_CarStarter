@@ -102,7 +102,7 @@ typedef struct
 /*************************************************************************************************/
 
 /* Initialize ds18b20 driver */
-void      ds18b20_init(ds18b20_t *handle, ow_init_t *init);
+bool      ds18b20_init(ds18b20_t *handle, ow_init_t *init);
 
 /* Check if ds18b20 bus is busy */
 bool      ds18b20_is_busy(ds18b20_t *handle);

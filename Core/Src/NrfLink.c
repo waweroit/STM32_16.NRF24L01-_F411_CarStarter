@@ -71,6 +71,7 @@ NRF24_Status_t NrfLink_SendFrame(NrfLink_t *link,
         return NRF24_INVALID_ARGUMENT;
     }
 
+    link->txFailureSnapshotValid = false;
     status = NRF24_StopListening(&link->radio);
     if (status == NRF24_OK)
     {
@@ -86,6 +87,15 @@ NRF24_Status_t NrfLink_SendFrame(NrfLink_t *link,
         status = NRF24_Send(&link->radio, frame, frameLength, timeoutMs);
     }
 
+    if (status == NRF24_MAX_RETRY)
+    {
+        link->txFailureAt = HAL_GetTick();
+        link->txFailureSnapshotValid =
+            NRF24_ReadRegister(&link->radio, 0x00u, &link->txFailureConfig) == NRF24_OK &&
+            NRF24_ReadBuffer(&link->radio, 0x10u, link->txFailureAddress, NRF_LINK_ADDRESS_SIZE) == NRF24_OK &&
+            NRF24_ReadBuffer(&link->radio, 0x0Au, link->txFailureAckAddress, NRF_LINK_ADDRESS_SIZE) == NRF24_OK;
+    }
+
     /* Always return the radio to its own physical RX address. */
     restoreStatus = NRF24_SetRxAddress(&link->radio, 0u, link->localAddress);
     if (restoreStatus == NRF24_OK)
@@ -93,12 +103,13 @@ NRF24_Status_t NrfLink_SendFrame(NrfLink_t *link,
         restoreStatus = NRF24_StartListening(&link->radio);
     }
 
-    if (status != NRF24_OK)
+    /* A failed restore leaves RX unavailable, even if TX merely missed an ACK. */
+    if (restoreStatus != NRF24_OK)
     {
-        return status;
+        return restoreStatus;
     }
 
-    return restoreStatus;
+    return status;
 }
 
 NRF24_Status_t NrfLink_ReceiveFrame(NrfLink_t *link,

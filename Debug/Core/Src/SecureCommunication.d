@@ -1,6 +1,7 @@
 Core/Src/SecureCommunication.o: ../Core/Src/SecureCommunication.c \
  ../Core/Inc/SecureCommunication.h ../Core/Inc/SecureTransport.h \
- ../Core/Inc/SecureProtocol.h ../Core/Inc/Crypto.h ../Core/Inc/main.h \
+ ../Core/Inc/SecureProtocol.h ../Core/Inc/Crypto.h \
+ ../Core/Inc/CarProtocol.h ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -29,15 +30,23 @@ Core/Src/SecureCommunication.o: ../Core/Src/SecureCommunication.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash_ramfunc.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rtc.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rtc_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
- ../Core/Inc/SecureSessionStorage.h
+ ../Core/Inc/SecureSessionStorage.h ../Core/Inc/CarStorage.h \
+ ../Core/Inc/W25Q64.h ../Core/Inc/CarConfig.h \
+ ../Core/Inc/CommunicationDevices.h ../Core/Inc/NrfLink.h \
+ ../Core/Inc/nRF24L01.h ../Core/Inc/CommunicationLink.h
 ../Core/Inc/SecureCommunication.h:
 ../Core/Inc/SecureTransport.h:
 ../Core/Inc/SecureProtocol.h:
 ../Core/Inc/Crypto.h:
+../Core/Inc/CarProtocol.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -67,8 +76,19 @@ Core/Src/SecureCommunication.o: ../Core/Src/SecureCommunication.c \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash_ramfunc.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rtc.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rtc_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h:
 ../Core/Inc/SecureSessionStorage.h:
+../Core/Inc/CarStorage.h:
+../Core/Inc/W25Q64.h:
+../Core/Inc/CarConfig.h:
+../Core/Inc/CommunicationDevices.h:
+../Core/Inc/NrfLink.h:
+../Core/Inc/nRF24L01.h:
+../Core/Inc/CommunicationLink.h:

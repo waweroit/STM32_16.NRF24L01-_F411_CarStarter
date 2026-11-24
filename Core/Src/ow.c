@@ -31,7 +31,8 @@
 /*************************************************************************************************/
 
 /* Start OneWire communication */
-ow_err_t  ow_start(ow_handle_t *handle);
+static ow_err_t ow_prepare(ow_handle_t *handle);
+static void ow_start_timer(ow_handle_t *handle);
 
 /* Stop OneWire communication */
 void      ow_stop(ow_handle_t *handle);
@@ -60,7 +61,7 @@ __STATIC_FORCEINLINE uint8_t ow_read_bit(ow_handle_t *handle);
  * @param[in,out]  handle: Pointer to the 1-Wire handle to initialize.
  * @param[in]  init: Pointer to initialization data (GPIO, pin, timer, callback).
  */
-void ow_init(ow_handle_t *handle, const ow_init_t *init)
+bool ow_init(ow_handle_t *handle, const ow_init_t *init)
 {
   assert_param(handle != NULL);
   assert_param(init != NULL);
@@ -100,10 +101,12 @@ void ow_init(ow_handle_t *handle, const ow_init_t *init)
 #endif
 
   /* Register user timer callback for timing events */
-  HAL_TIM_RegisterCallback(handle->config.tim_handle, HAL_TIM_PERIOD_ELAPSED_CB_ID, init->tim_cb);
+  bool registered = HAL_TIM_RegisterCallback(handle->config.tim_handle,
+      HAL_TIM_PERIOD_ELAPSED_CB_ID, init->tim_cb) == HAL_OK;
 
   /* Set bus to idle state (high) */
   ow_write_bit(handle, true);
+  return registered;
 }
 
 /*************************************************************************************************/
@@ -205,7 +208,7 @@ ow_err_t ow_update_rom_id(ow_handle_t *handle)
   do
   {
     /* Start 1-Wire communication */
-    handle->error = ow_start(handle);
+    handle->error = ow_prepare(handle);
     if (handle->error != OW_ERR_NONE)
     {
         /* Stop bus if start failed */
@@ -220,6 +223,7 @@ ow_err_t ow_update_rom_id(ow_handle_t *handle)
     handle->buf.data[0]   = OW_CMD_READ_ROM;
     handle->buf.write_len = 1;
     handle->buf.read_len  = 8;
+    ow_start_timer(handle);
 
   } while (0);
 
@@ -241,7 +245,7 @@ ow_err_t ow_update_rom_id(ow_handle_t *handle)
   do
   {
     /* Start 1-Wire communication */
-    handle->error = ow_start(handle);
+    handle->error = ow_prepare(handle);
     if (handle->error != OW_ERR_NONE)
     {
       /* Stop bus if start failed */
@@ -257,6 +261,7 @@ ow_err_t ow_update_rom_id(ow_handle_t *handle)
     /* Clear previous search and ROM ID data */
     memset(&handle->search, 0, sizeof(ow_search_t));
     memset(handle->rom_id, 0, sizeof(handle->rom_id));
+    ow_start_timer(handle);
 
   } while (0);
 
@@ -297,7 +302,7 @@ ow_err_t ow_xfer(ow_handle_t *handle, uint8_t fn_cmd, const uint8_t *w_data, uin
     }
 
     /* Start 1-Wire communication */
-    handle->error = ow_start(handle);
+    handle->error = ow_prepare(handle);
     if (handle->error != OW_ERR_NONE)
     {
       ow_stop(handle);
@@ -329,6 +334,7 @@ ow_err_t ow_xfer(ow_handle_t *handle, uint8_t fn_cmd, const uint8_t *w_data, uin
 
     /* Set expected read length */
     handle->buf.read_len  = r_len;
+    ow_start_timer(handle);
 
   } while (0);
 
@@ -378,7 +384,7 @@ ow_err_t ow_xfer_by_id(ow_handle_t *handle, uint8_t rom_id, uint8_t fn_cmd, cons
     }
 
     /* Start 1-Wire communication */
-    handle->error = ow_start(handle);
+    handle->error = ow_prepare(handle);
     if (handle->error != OW_ERR_NONE)
     {
       ow_stop(handle);
@@ -414,6 +420,7 @@ ow_err_t ow_xfer_by_id(ow_handle_t *handle, uint8_t rom_id, uint8_t fn_cmd, cons
     
     /* Set expected read length */
     handle->buf.read_len  = r_len;
+    ow_start_timer(handle);
 
   } while (0);
 
@@ -487,7 +494,7 @@ uint16_t ow_read_resp(ow_handle_t *handle, uint8_t *data, uint16_t data_size)
  * @param[in] handle: Pointer to the 1-Wire handle.
  * @retval OW_ERR_NONE on success, or error code (OW_ERR_BUSY, OW_ERR_BUS).
  */
-ow_err_t ow_start(ow_handle_t *handle)
+static ow_err_t ow_prepare(ow_handle_t *handle)
 {
   ow_err_t ow_err = OW_ERR_NONE;
   assert_param(handle != NULL);
@@ -516,11 +523,21 @@ ow_err_t ow_start(ow_handle_t *handle)
     /* Configure timer for reset detection */
     __HAL_TIM_SET_COUNTER(handle->config.tim_handle, 0);
     __HAL_TIM_SET_AUTORELOAD(handle->config.tim_handle, OW_TIM_RST_DET - 1);
-    HAL_TIM_Base_Start_IT(handle->config.tim_handle);
+
 
   } while (0);
 
   return ow_err;
+}
+
+/* Arm the IRQ only after the state, command and lengths are published. */
+static void ow_start_timer(ow_handle_t *handle)
+{
+  if (HAL_TIM_Base_Start_IT(handle->config.tim_handle) != HAL_OK)
+  {
+    handle->error = OW_ERR_BUS;
+    ow_stop(handle);
+  }
 }
 
 /*************************************************************************************************/

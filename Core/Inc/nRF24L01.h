@@ -53,7 +53,7 @@ typedef struct {
     bool dynamicPayloadEnabled;
 } NRF24_Handle_t;
 
-/** @brief Initialize radio defaults: channel 76, 1 Mbps, 0 dBm, 5-byte addresses, CRC-16, Auto ACK and dynamic payload. */
+/** @brief Initialize radio defaults: channel 100, 250 kbps, 0 dBm, 5-byte addresses, CRC-16, Auto ACK and dynamic payload. */
 NRF24_Status_t NRF24_Init(NRF24_Handle_t *handle, SPI_HandleTypeDef *hspi,
                           GPIO_TypeDef *cePort, uint16_t cePin,
                           GPIO_TypeDef *csnPort, uint16_t csnPin);
@@ -79,6 +79,8 @@ NRF24_Status_t NRF24_SetTxAddress(NRF24_Handle_t *handle, const uint8_t *address
 NRF24_Status_t NRF24_SetRxAddress(NRF24_Handle_t *handle, uint8_t pipe, const uint8_t *address);
 /** @brief Enter powered RX mode and assert CE. */
 NRF24_Status_t NRF24_StartListening(NRF24_Handle_t *handle);
+/** @brief Deassert CE and clear PWR_UP, retaining the radio registers. */
+NRF24_Status_t NRF24_PowerDown(NRF24_Handle_t *handle);
 /** @brief Deassert CE and enter powered TX mode. */
 NRF24_Status_t NRF24_StopListening(NRF24_Handle_t *handle);
 /** @brief Send one 1..32-byte payload and wait for TX_DS/MAX_RT/timeout. */

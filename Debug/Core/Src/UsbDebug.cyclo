@@ -1,0 +1,7 @@
+../Core/Src/UsbDebug.c:26:6:UsbDebug_Init	1
+../Core/Src/UsbDebug.c:34:6:UsbDebug_SetVerbose	1
+../Core/Src/UsbDebug.c:35:6:UsbDebug_IsVerbose	1
+../Core/Src/UsbDebug.c:37:6:Debug	6
+../Core/Src/UsbDebug.c:74:6:DebugPrintf	3
+../Core/Src/UsbDebug.c:98:6:DebugMessage	8
+../Core/Src/UsbDebug.c:149:6:UsbDebug_Process	7

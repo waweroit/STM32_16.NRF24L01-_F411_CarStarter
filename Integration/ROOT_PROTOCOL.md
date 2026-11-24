@@ -2,8 +2,8 @@
 
 CarStarter: ID **0x03**, adres nRF **E7 E7 E7 E7 C3** (kolejność tablicy
 przekazywanej do sterownika), klucz z `communicationDevices[2]`.
-Root: ID 0x01 / `communicationDevices[0]`. Parametry radia: kanał 76,
-1 Mb/s, dynamic payload, adres 5 B, AutoACK. Nie zmieniono wersji SecureProtocol.
+Root: ID 0x01 / `communicationDevices[0]`. Parametry radia: kanał 100,
+250 kb/s, dynamic payload, adres 5 B, AutoACK. Nie zmieniono wersji SecureProtocol.
 
 ## Zmiany potrzebne po stronie Root
 
@@ -37,6 +37,7 @@ Każda poniższa wiadomość mieści się w jednej uwierzytelnionej ramce nRF.
 | SET_TIMEOUT | 0x24 | session u32, window u16, seconds u16 (8 B) |
 | GET_TIMEOUT | 0x25 | pusty |
 | STOP | 0x26 | session u32, window u16 (6 B) |
+| SET_DEBUG | 0x27 | jeden bajt 00 (off) lub 01 (on); odpowiedź 0x27 z aktualną wartością |
 | READY | 0x28 | session u32, window u16, remainingSeconds u8, version=1 u8 |
 | TELEMETRY | 0x29 | opis poniżej, 11 B |
 | RESULT | 0x2A | command u8, result u8, requestId u32 (6 B) |
@@ -55,6 +56,12 @@ GET_TEMPERATURE rozpoczyna świeżą konwersję; odpowiedź używa istniejącego
 typu TEMPERATURE **0x02**, ASCII np. `-12.34` lub `ERR`, bez końcowego NUL.
 GET_VOLTAGE/GET_STATUS zwracają TELEMETRY, TIMEOUT i READY z najnowszego cache.
 Stan świeżości ADC jest jawny w flagach.
+
+SET_DEBUG wymaga uwierzytelnienia ROOT i poprawnego bajtu 00/01. Nie zawiera
+tokenu okna. Niepoprawna długość lub wartość daje RESULT BAD_REQUEST.
+Root wysyła parametr po READY i potwierdza zmianę dopiero po odebraniu 0x27
+z oczekiwaną wartością. Flaga steruje szczegółowymi logami USB CarStartera,
+jest zachowywana podczas STOP i wraca do OFF po resecie MCU.
 
 TELEMETRY:
 

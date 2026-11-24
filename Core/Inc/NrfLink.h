@@ -15,6 +15,12 @@ typedef struct
 {
     NRF24_Handle_t radio;
     uint8_t localAddress[NRF_LINK_ADDRESS_SIZE];
+    /* Read back after a failed TX, before restoring the local RX address. */
+    bool txFailureSnapshotValid;
+    uint8_t txFailureConfig;
+    uint8_t txFailureAddress[NRF_LINK_ADDRESS_SIZE];
+    uint8_t txFailureAckAddress[NRF_LINK_ADDRESS_SIZE];
+    uint32_t txFailureAt;
 } NrfLink_t;
 
 NRF24_Status_t NrfLink_Init(NrfLink_t *link,

@@ -100,6 +100,8 @@ int main(void)
   MX_RTC_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+  /* Allow the USB COM port to reconnect before initialization logs and RF TX. */
+  HAL_Delay(10000u);
   CarStarter_Init();
 
   /* USER CODE END 2 */

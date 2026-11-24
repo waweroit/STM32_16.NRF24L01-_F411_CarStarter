@@ -171,12 +171,18 @@ static int ProtocolTests(void)
     return 0;
 }
 volatile uint32_t test_stage;
+int SensorTests(void);
+int RadioTests(void);
+int ButtonTests(void);
 int test_main(void)
 {
     int r;
     test_stage=1u; r=EngineTests(); if(r) return r;
     test_stage=2u; r=StorageTests(); if(r) return r;
     test_stage=3u; r=ProtocolTests(); if(r) return r;
-    test_stage=4u;
+    test_stage=4u; r=SensorTests(); if(r) return r;
+    test_stage=5u; r=RadioTests(); if(r) return r;
+    test_stage=6u; r=ButtonTests(); if(r) return r;
+    test_stage=7u;
     return 0;
 }

@@ -54,16 +54,13 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(BLUE_LED_GPIO_Port, BLUE_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DEV_SHUTDOWN_SW_Pin|NRF24_CE_Pin
-                          |StartEngineStopCarButton_Pin, GPIO_PIN_RESET);
-
-  HAL_GPIO_WritePin(GPIOA, SPI1_NRF24_CS_Pin|SPI1_EEPROM_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, DEV_SHUTDOWN_SW_Pin|NRF24_CE_Pin|TempMesMosfet_Pin|StartEngineStopCarButton_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(DS1820_TempSensor_GPIO_Port, DS1820_TempSensor_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, SPI1_NRF24_CS_Pin|SPI1_EEPROM_CS_Pin|DS1820_TempSensor_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(CarKeyPower_GPIO_Port, CarKeyPower_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, VoltMesMosfet_Pin|CarKeyPower_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : BLUE_LED_Pin */
   GPIO_InitStruct.Pin = BLUE_LED_Pin;
@@ -73,17 +70,24 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(BLUE_LED_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DEV_SHUTDOWN_SW_Pin NRF24_CE_Pin SPI1_NRF24_CS_Pin SPI1_EEPROM_CS_Pin
-                           StartEngineStopCarButton_Pin */
+                           TempMesMosfet_Pin StartEngineStopCarButton_Pin */
   GPIO_InitStruct.Pin = DEV_SHUTDOWN_SW_Pin|NRF24_CE_Pin|SPI1_NRF24_CS_Pin|SPI1_EEPROM_CS_Pin
-                          |StartEngineStopCarButton_Pin;
+                          |TempMesMosfet_Pin|StartEngineStopCarButton_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : VoltMesMosfet_Pin */
+  GPIO_InitStruct.Pin = VoltMesMosfet_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(VoltMesMosfet_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : ResetUserButton_EXTI_Pin */
   GPIO_InitStruct.Pin = ResetUserButton_EXTI_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ResetUserButton_EXTI_GPIO_Port, &GPIO_InitStruct);
 

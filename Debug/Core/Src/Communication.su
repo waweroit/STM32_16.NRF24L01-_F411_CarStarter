@@ -1,0 +1,15 @@
+../Core/Src/Communication.c:11:6:Communication_Init	24	static
+../Core/Src/Communication.c:33:6:Communication_AddRoute	40	static
+../Core/Src/Communication.c:84:6:Communication_Send	296	static
+../Core/Src/Communication.c:118:23:Communication_Process	24	static
+../Core/Src/Communication.c:144:6:Communication_TryReceive	16	static
+../Core/Src/Communication.c:159:23:Communication_ProcessTxOnly	16	static
+../Core/Src/Communication.c:165:6:Communication_IsInitialized	16	static
+../Core/Src/Communication.c:170:6:Communication_IsTxQueueEmpty	16	static
+../Core/Src/Communication.c:175:6:Communication_ResetTxQueue	16	static
+../Core/Src/Communication.c:182:27:Communication_GetLastLinkStatus	16	static
+../Core/Src/Communication.c:192:25:Communication_GetLastSecureStatus	16	static
+../Core/Src/Communication.c:202:13:Communication_StatusToString	16	static
+../Core/Src/Communication.c:219:36:FindRoute	24	static
+../Core/Src/Communication.c:242:30:ProcessRx	344	static
+../Core/Src/Communication.c:306:30:ProcessTx	352	static

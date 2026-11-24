@@ -27,7 +27,8 @@ def main():
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
     gcc = args.gcc or compiler()
-    out = ROOT / "build" / ("debug" if args.debug else "release")
+    configuration = "debug" if args.debug else "release"
+    out = ROOT / "build" / configuration
     out.mkdir(parents=True, exist_ok=True)
     includes = ["Core/Inc", "USB_DEVICE/App", "USB_DEVICE/Target",
         "Drivers/STM32F4xx_HAL_Driver/Inc", "Drivers/STM32F4xx_HAL_Driver/Inc/Legacy",

@@ -1,0 +1,10 @@
+../Core/Src/Crypto.c:8:13:left_shift_block	2
+../Core/Src/Crypto.c:19:13:xor_block	2
+../Core/Src/Crypto.c:27:13:generate_cmac_subkeys	3
+../Core/Src/Crypto.c:48:23:ctr_xcrypt	8
+../Core/Src/Crypto.c:72:16:AES_CTR_Encrypt	1
+../Core/Src/Crypto.c:81:16:AES_CTR_Decrypt	1
+../Core/Src/Crypto.c:90:16:Crypto_CalculateCmac	14
+../Core/Src/Crypto.c:148:16:Crypto_CalculateAuthTag	3
+../Core/Src/Crypto.c:167:16:Crypto_VerifyAuthTag	5
+../Core/Src/Crypto.c:192:13:Crypto_StatusToString	5

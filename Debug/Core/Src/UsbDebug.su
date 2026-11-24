@@ -1,0 +1,7 @@
+../Core/Src/UsbDebug.c:26:6:UsbDebug_Init	4	static
+../Core/Src/UsbDebug.c:34:6:UsbDebug_SetVerbose	16	static
+../Core/Src/UsbDebug.c:35:6:UsbDebug_IsVerbose	4	static
+../Core/Src/UsbDebug.c:37:6:Debug	280	static
+../Core/Src/UsbDebug.c:74:6:DebugPrintf	272	static
+../Core/Src/UsbDebug.c:98:6:DebugMessage	312	static
+../Core/Src/UsbDebug.c:149:6:UsbDebug_Process	272	static

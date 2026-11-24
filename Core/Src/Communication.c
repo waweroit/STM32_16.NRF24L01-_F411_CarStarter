@@ -1,4 +1,5 @@
 #include "Communication.h"
+#include "UsbDebug.h"
 
 #include <string.h>
 
@@ -365,6 +366,9 @@ static CommunicationStatus_t ProcessTx(Communication_t *context)
 
         if (linkStatus != COMMUNICATION_LINK_OK)
         {
+            if (UsbDebug_IsVerbose()) DebugPrintf("CAR TX failed type=0x%02X len=%u link=%s\r\n",
+                (unsigned)message.messageType, (unsigned)message.payloadLength,
+                CommunicationLink_StatusToString(linkStatus));
             return COMMUNICATION_PROCESS_LINK_ERROR;
         }
     }

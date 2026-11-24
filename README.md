@@ -12,8 +12,11 @@ parametry sprzętowe i czasy w `Core/Inc/CarConfig.h`.
 - RTC: LSI, preskalery 127/249, Wakeup Counter 59. Dokładność zależy od LSI.
   Timer RTC jest uzbrajany bezpośrednio przed STOP. PB12 także wybudza MCU.
 - Podczas rozruchu i odliczania gaszenia nie ma STOP. Raporty co 60 s.
-- Skonfigurowane połączenie USB utrzymuje MCU aktywne do diagnostyki
-  (`CAR_USB_KEEP_AWAKE`). Bez USB diagnostyka nie blokuje aplikacji.
+- Po inicjalizacji USB sterownik czeka 10 s na ponowne otwarcie portu COM.
+  Opóźnienie dotyczy startu MCU, także w zwykłym Debug i Release.
+- USB domyślnie pozwala na STOP (`CAR_USB_KEEP_AWAKE=0`). Podczas STOP USB
+  jest odłączane i ponownie inicjalizowane po wybudzeniu. Włączenie logów
+  przez radio również pozwala na sen.
 - Domyślny czas gaszenia: 900 s. Root może zapisać 30–3600 s. Nowy limit działa
   również w bieżącym cyklu, liczony od zakończenia próby rozruchu; jeżeli już
   upłynął, gaszenie następuje przy następnej obsłudze aplikacji.
@@ -65,7 +68,7 @@ opóźnienie do około 30 ms. Nie jest to sterowanie o gwarantowanej latencji.
 | SPI1 | PA5 SCK / PA6 MISO / PA7 MOSI, mode 0, 6 MHz |
 | nRF24 CE / CS | PA2 / PA3 |
 | W25Q64 CS | PA4; nazwa CubeMX `SPI1_EEPROM_CS` |
-| Zasilanie peryferiów | PA1 HIGH, zgodnie z MeasurementUnit |
+| Zasilanie nRF24L01 | PA1 HIGH włącza moduł przez 2N7002 |
 | LED | PC13, zakładana aktywność LOW |
 
 Założono jeden DS18B20 z osobnym zasilaniem, nie parasite power. TIM1 ma krok
@@ -76,15 +79,22 @@ volatile dla stanu ISR i poprawionymi czasami presence/read. Wymagania czasowe:
 Przebiegi rzeczywiste trzeba sprawdzić analizatorem, szczególnie przy długim kablu.
 
 ADC pobiera serie 32 próbek przez DMA2 Stream0 Channel0 w trybie Normal.
-Przeliczenie używa kalibracji starego projektu: VDDA 3287 mV, mnożnik 5,726.
+Przeliczenie przyjmuje VDDA 3287 mV i mnożnik 4,917 dla dzielnika 470 kΩ / 120 kΩ.
 Pomiar jest odświeżany co 1 s, ważny przez 2,5 s. Nieprawidłowe próbki przy
 szynach ADC są odrzucane. Raport dotyczy napięcia w mV; nie wylicza procentowego
 naładowania akumulatora.
 
-W STOP nRF przechodzi w Power Down, W25Q64 w Deep Power Down; ADC i TIM1 są
-zatrzymywane, USB odłączane. PA1 pozostaje HIGH: bez schematu nie odcinamy
-wspólnej szyny zasilającej czujnik/pamięć. Po wybudzeniu przywracane są zegary,
-USB, pamięć i radio. Prądu całej płytki nie zmierzono.
+Po wyjściu z STOP sterownik przywraca zegary i czeka 500 ms na stabilizację
+zasilania, przed inicjalizacją USB i wybudzeniem pamięci. Po ustawieniu PA1
+w stan wysoki odczekuje dodatkowo 200 ms przed inicjalizacją nRF24L01.
+Pełne 30-sekundowe okno odbioru jest liczone od gotowości radia. Odzyskiwanie
+radia po błędzie w trwającym oknie zachowuje jego dotychczasowy termin.
+Po zamknięciu okna kończy wysyłanie oczekujących odpowiedzi
+i zeruje PWR_UP radia z odczytem kontrolnym, po czym ustawia PA1 w stan niski,
+również przy aktywnym MCU. Power-down działa także przy stałym zasilaniu nRF.
+Kolejny raport lub wynik
+operacji może ponownie otworzyć okno. W STOP radio pozostaje wyłączone, W25Q64
+przechodzi w Deep Power Down, ADC i TIM1 są zatrzymywane, a USB odłączane.
 
 ## Pamięć i zabezpieczenie komunikacji
 
@@ -112,9 +122,27 @@ USB, pamięć i radio. Prądu całej płytki nie zmierzono.
 ## Protokół i Root
 
 Szczegółowy format: [Integration/ROOT_PROTOCOL.md](Integration/ROOT_PROTOCOL.md).
-Gotowy klient do przeniesienia do Root: `Integration/RootCarClient.c/.h`.
-**Firmware Root nie został zmieniony w tej pracy.** Jego obecna wersja obsługuje
-MeasurementUnit; wymaga autoryzacji/trasy CarStartera i wywołania klienta.
+Projekt Root obsługuje MeasurementUnit i CarStartera przez moduł RootCar.
+Pomocniczy klient integracyjny znajduje się w `Integration/RootCarClient.c/.h`.
+
+## Logi diagnostyczne
+
+Na porcie USB ROOT można wysłać `car debug on` lub `car debug off`.
+Root czeka na READY, wysyła uwierzytelnione SET_DEBUG (0x27) z jednym bajtem
+01 lub 00 i czeka na odpowiedź z aktualną wartością. Potwierdzenie na ROOT ma
+postać `CAR debug ON confirmed` albo `CAR debug OFF confirmed`.
+
+Szczegółowe logi są domyślnie wyłączone. Włączenie pokazuje na USB CarStartera
+odebrane komendy, kolejki i błędy TX, otwieranie/zamykanie okna, STOP/wybudzenie
+oraz rejestry radia i adresy ACK po błędzie transmisji. Podstawowe błędy
+komunikacji/pamięci i komunikat inicjalizacji pozostają dostępne.
+
+Wartość jest przechowywana w RAM i zachowywana podczas STOP. Po resecie
+MCU logowanie szczegółowe wraca do OFF. Parametr nie jest zapisywany jako
+ustawienie trwałe i nie zmienia cyklu snu ani czasu gaszenia.
+
+Usunięto wariant ciągle aktywnego radia i opcję budowania `--radio-test`.
+Do pracy i diagnostyki używa się zwykłego projektu Debug lub Release.
 
 ## Budowanie i weryfikacja
 

@@ -69,9 +69,13 @@ void Error_Handler(void);
 #define SPI1_EEPROM_CS_GPIO_Port GPIOA
 #define VoltMesureADC1_Pin GPIO_PIN_1
 #define VoltMesureADC1_GPIO_Port GPIOB
+#define VoltMesMosfet_Pin GPIO_PIN_2
+#define VoltMesMosfet_GPIO_Port GPIOB
 #define ResetUserButton_EXTI_Pin GPIO_PIN_12
 #define ResetUserButton_EXTI_GPIO_Port GPIOB
 #define ResetUserButton_EXTI_EXTI_IRQn EXTI15_10_IRQn
+#define TempMesMosfet_Pin GPIO_PIN_9
+#define TempMesMosfet_GPIO_Port GPIOA
 #define DS1820_TempSensor_Pin GPIO_PIN_10
 #define DS1820_TempSensor_GPIO_Port GPIOA
 #define StartEngineStopCarButton_Pin GPIO_PIN_15

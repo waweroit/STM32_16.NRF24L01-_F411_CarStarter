@@ -18,6 +18,7 @@ typedef struct
 static UsbDebugMessage_t queue[USB_DEBUG_QUEUE_DEPTH];
 static uint8_t head, count;
 static bool initialized;
+static bool verbose;
 static uint8_t usbDebugTxBuffer[USB_DEBUG_MESSAGE_SIZE];
 
 volatile UsbDebugStats_t gUsbDebugStats = {0u, 0u, 0u};
@@ -26,8 +27,12 @@ bool UsbDebug_Init(void)
 {
     head = count = 0u;
     initialized = true;
+    verbose = false;
     return true;
 }
+
+void UsbDebug_SetVerbose(bool enabled) { verbose = enabled; }
+bool UsbDebug_IsVerbose(void) { return verbose; }
 
 void Debug(const char *msg)
 {

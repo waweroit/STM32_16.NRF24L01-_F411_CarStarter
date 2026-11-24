@@ -1,3 +1,1 @@
-../Core/Src/SecureSessionStorage.c:13:6:SecureSessionStorage_NextBootCounter	10
-../Core/Src/SecureSessionStorage.c:70:13:ProgramCounter	3
-../Core/Src/SecureSessionStorage.c:93:13:EraseStorageSector	4
+../Core/Src/SecureSessionStorage.c:3:6:SecureSessionStorage_NextBootCounter	5

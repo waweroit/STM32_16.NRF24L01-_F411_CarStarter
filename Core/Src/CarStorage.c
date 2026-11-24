@@ -18,6 +18,7 @@ static W25Q_HandleTypeDef *device;
 static CarStoredData current;
 static uint32_t sequence, latestAddress;
 static bool ready, haveRecord;
+/** Oblicza CRC-32 z n bajtów bufora p na potrzeby weryfikacji rekordu. */
 static uint32_t Crc(const uint8_t *p, uint32_t n)
 {
     uint32_t crc = ~0u;
@@ -27,12 +28,14 @@ static uint32_t Crc(const uint8_t *p, uint32_t n)
     }
     return ~crc;
 }
+/** Sprawdza, czy wszystkie bajty rekordu r mają wartość skasowanej pamięci NOR (0xFF). */
 static bool Empty(const Record *r)
 {
     const uint8_t *p = (const uint8_t *)r;
     for (unsigned i = 0; i < sizeof(*r); ++i) if (p[i] != 0xFFu) return false;
     return true;
 }
+/** Sprawdza nagłówek, znacznik zakończenia zapisu, CRC i zakresy pól rekordu r. */
 static bool Valid(const Record *r)
 {
     return r->magic == MAGIC && r->version == 1u && r->commit == COMMIT &&
@@ -40,6 +43,8 @@ static bool Valid(const Record *r)
            r->data.stopSeconds >= CAR_MIN_STOP_SECONDS && r->data.stopSeconds <= CAR_MAX_STOP_SECONDS &&
            r->data.bootCounter <= 0xFFFFFFu && r->data.rootInitialized <= 1u;
 }
+/** Przeszukuje dwa sektory pamięci flash i odtwarza dane z najnowszego poprawnego rekordu.
+ * Zwraca false przy błędzie odczytu lub gdy zajęta pamięć nie zawiera poprawnego rekordu. */
 bool CarStorage_Init(W25Q_HandleTypeDef *flash)
 {
     device = flash; ready = false; haveRecord = false; sequence = 0u;
@@ -61,8 +66,13 @@ bool CarStorage_Init(W25Q_HandleTypeDef *flash)
     ready = true;
     return true;
 }
+/** Udostępnia do odczytu bieżącą kopię danych w RAM, przygotowaną przez CarStorage_Init(). */
 const CarStoredData *CarStorage_Get(void) { return &current; }
+/** Zwraca stan gotowości dziennika ustalony przy inicjalizacji i aktualizowany po błędach
+ * zapisu. */
 bool CarStorage_Ready(void) { return ready; }
+/** Dopisuje pełną kopię danych wskazanych przez data. Zwraca true po zatwierdzeniu rekordu i
+ * sprawdzeniu odczytanej kopii. */
 bool CarStorage_Save(const CarStoredData *data)
 {
     if (!ready || !data || sequence == UINT32_MAX) return false;
@@ -82,6 +92,8 @@ bool CarStorage_Save(const CarStoredData *data)
     memset(&r, 0, sizeof(r));
     r.magic = MAGIC; r.version = 1u; r.sequence = sequence + 1u; r.data = *data;
     r.crc = Crc((const uint8_t *)&r, sizeof(r)-8u); r.commit = COMMIT;
+    /* Znacznik commit zapisujemy osobno na końcu. Po zaniku zasilania skanowanie
+     * pomija rekord bez poprawnego znacznika. */
     if (!Valid(&r) || !W25Q_Write(device, addr, (const uint8_t *)&r, sizeof(r)-4u) ||
         !W25Q_Write(device, addr+sizeof(r)-4u, (const uint8_t *)&r.commit, 4u)) goto fail;
     Record check;

@@ -8,23 +8,20 @@
 #include "usbd_core.h"
 extern USBD_HandleTypeDef hUsbDeviceFS;
 extern void SystemClock_Config(void);
+/** Zwraca true, gdy host zakończył konfigurację urządzenia USB. */
 bool CarPower_UsbActive(void)
 {
     return hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED;
 }
-bool CarPower_Sleep(W25Q_HandleTypeDef *flash, NrfLink_t *radio, bool radioReady)
+/** Usypia pozostałe peryferia po zamknięciu okna radiowego. */
+CarSleepResult CarPower_Sleep(W25Q_HandleTypeDef *flash)
 {
-    if (CarButton_Busy() || CarButton_WakePending()) return false;
-    if (radioReady) {
-        uint8_t config;
-        HAL_GPIO_WritePin(NRF24_CE_GPIO_Port, NRF24_CE_Pin, GPIO_PIN_RESET);
-        if (NRF24_ReadRegister(&radio->radio, 0u, &config) != NRF24_OK ||
-            NRF24_WriteRegister(&radio->radio, 0u, config & ~2u) != NRF24_OK) return false;
-    }
-    if (!W25Q_PowerDown(flash)) return false;
+    if (CarButton_Busy() || CarButton_WakePending()) return CAR_SLEEP_CANCELLED;
+    if (!W25Q_PowerDown(flash)) return CAR_SLEEP_CANCELLED;
     CarSensors_Suspend();
     if (USBD_DeInit(&hUsbDeviceFS) != USBD_OK) {
-        MX_USB_DEVICE_Init(); W25Q_Wake(flash); return false;
+        MX_USB_DEVICE_Init();
+        return W25Q_Wake(flash) ? CAR_SLEEP_CANCELLED : CAR_FLASH_WAKE_ERROR;
     }
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
     __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&hrtc, RTC_FLAG_WUTF);
@@ -49,7 +46,10 @@ bool CarPower_Sleep(W25Q_HandleTypeDef *flash, NrfLink_t *radio, bool radioReady
         }
         __set_PRIMASK(mask);
         HAL_ResumeTick();
-        if (slept) SystemClock_Config();
+        if (slept) {
+            SystemClock_Config();
+            HAL_Delay(CAR_WAKE_SETTLE_MS);
+        }
     }
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
     __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&hrtc, RTC_FLAG_WUTF);
@@ -57,6 +57,6 @@ bool CarPower_Sleep(W25Q_HandleTypeDef *flash, NrfLink_t *radio, bool radioReady
     HAL_NVIC_ClearPendingIRQ(RTC_WKUP_IRQn);
     HAL_NVIC_ClearPendingIRQ(OTG_FS_IRQn);
     MX_USB_DEVICE_Init();
-    W25Q_Wake(flash);
-    return slept;
+    if (!W25Q_Wake(flash)) return CAR_FLASH_WAKE_ERROR;
+    return slept ? CAR_SLEEP_COMPLETED : CAR_SLEEP_CANCELLED;
 }

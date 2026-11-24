@@ -10,6 +10,9 @@ typedef struct {
     SPI_HandleTypeDef *hspi;
     GPIO_TypeDef *cs_port;
     uint16_t cs_pin;
+    const char *initError;
+    uint8_t lastStatus;
+    uint8_t jedecId[3];
 } W25Q_HandleTypeDef;
 bool W25Q_Init(W25Q_HandleTypeDef *dev, SPI_HandleTypeDef *spi, GPIO_TypeDef *port, uint16_t pin);
 bool W25Q_Read(W25Q_HandleTypeDef *dev, uint32_t addr, uint8_t *data, uint32_t len);

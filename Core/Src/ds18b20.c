@@ -35,7 +35,7 @@
  * @param[in] init: Pointer to initialization data (GPIO, pin, timer, callback).
  * @retval None
  */
-void ds18b20_init(ds18b20_t *handle, ow_init_t *init)
+bool ds18b20_init(ds18b20_t *handle, ow_init_t *init)
 {
   assert_param(handle != NULL);
   assert_param(init != NULL);
@@ -44,7 +44,7 @@ void ds18b20_init(ds18b20_t *handle, ow_init_t *init)
   handle->cnv_time = DS18B20_CNV_TIM_12;
 
   /* Initialize one-wire */
-  ow_init(&handle->ow, init);
+  return ow_init(&handle->ow, init);
 }
 
 /*************************************************************************************************/
@@ -234,6 +234,9 @@ int16_t ds18b20_read_c(ds18b20_t *handle)
     {
       break;
     }
+
+    /* A line held low produces nine zero bytes with a valid CRC. */
+    if ((r_data[4] & 0x9Fu) != 0x1Fu) break;
 
     /* Read Raw data */
     raw = (uint16_t) (r_data[0] | (r_data[1] << 8));
