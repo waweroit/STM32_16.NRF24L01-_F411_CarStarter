@@ -3,5 +3,5 @@
 ../Core/Src/SecureCommunication.c:90:25:SecureCommunication_BeginMessage	32	static
 ../Core/Src/SecureCommunication.c:111:25:SecureCommunication_CreateNextFrame	32	static
 ../Core/Src/SecureCommunication.c:132:25:SecureCommunication_ProcessFrame	88	static
-../Core/Src/SecureCommunication.c:170:24:SecureCommunication_GetLastProtocolStatus	16	static
-../Core/Src/SecureCommunication.c:181:6:SecureCommunication_IsInitialized	16	static
+../Core/Src/SecureCommunication.c:173:24:SecureCommunication_GetLastProtocolStatus	16	static
+../Core/Src/SecureCommunication.c:184:6:SecureCommunication_IsInitialized	16	static

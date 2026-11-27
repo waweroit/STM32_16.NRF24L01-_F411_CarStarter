@@ -7,6 +7,8 @@ static const CommunicationRoute_t *FindRoute(const Communication_t *context,
                                               uint8_t logicalDeviceId);
 static CommunicationStatus_t ProcessRx(Communication_t *context);
 static CommunicationStatus_t ProcessTx(Communication_t *context);
+static CommunicationStatus_t TransmitMessage(Communication_t *context,
+                                             const CommunicationMessage_t *message);
 
 bool Communication_Init(Communication_t *context,
                         SecureCommunication_t *secure,
@@ -258,6 +260,7 @@ static CommunicationStatus_t ProcessRx(Communication_t *context)
 
     if (linkStatus != COMMUNICATION_LINK_OK)
     {
+        DebugPrintf("[RX LINK ERROR] %s\r\n", CommunicationLink_StatusToString(linkStatus));
         return COMMUNICATION_PROCESS_LINK_ERROR;
     }
 
@@ -280,11 +283,15 @@ static CommunicationStatus_t ProcessRx(Communication_t *context)
 
     if (secureStatus == SECURE_TRANSPORT_IN_PROGRESS)
     {
+        DebugPrintf("[RX FRAGMENT] radio_bytes=%u\r\n", (unsigned)frameLength);
         return COMMUNICATION_OK;
     }
 
     if (secureStatus != SECURE_TRANSPORT_OK)
     {
+        DebugPrintf("[RX REJECTED] radio_bytes=%u transport=%s protocol=%s\r\n",
+                    (unsigned)frameLength, SecureTransport_StatusToString(secureStatus),
+                    SecureProtocol_StatusToString(SecureCommunication_GetLastProtocolStatus(context->secure)));
         return COMMUNICATION_SECURE_ERROR;
     }
 
@@ -292,6 +299,9 @@ static CommunicationStatus_t ProcessRx(Communication_t *context)
     message.destinationId = context->secure->localDeviceId;
     message.messageType = messageType;
     message.payloadLength = messageLength;
+
+    DebugMessage("RX", message.sourceId, message.destinationId, message.messageType,
+                 message.payload, message.payloadLength);
 
     if (context->rxCount == COMMUNICATION_RX_QUEUE_DEPTH)
     {
@@ -305,31 +315,39 @@ static CommunicationStatus_t ProcessRx(Communication_t *context)
 
 static CommunicationStatus_t ProcessTx(Communication_t *context)
 {
-    CommunicationMessage_t message;
-    const CommunicationRoute_t *route;
-    SecureCommunicationTxState_t txState;
-    SecureTransportStatus_t secureStatus;
-    bool messageComplete = false;
-
     if (context->txCount == 0u)
     {
         return COMMUNICATION_IDLE;
     }
 
-    message = context->txQueue[context->txHead];
+    CommunicationMessage_t message = context->txQueue[context->txHead];
     context->txHead = (context->txHead + 1u) % COMMUNICATION_TX_QUEUE_DEPTH;
     --context->txCount;
-    route = FindRoute(context, message.destinationId);
+
+    CommunicationStatus_t status = TransmitMessage(context, &message);
+    DebugMessage(status == COMMUNICATION_OK ? "TX" : "TX FAIL",
+                 message.sourceId, message.destinationId, message.messageType,
+                 message.payload, message.payloadLength);
+    return status;
+}
+
+static CommunicationStatus_t TransmitMessage(Communication_t *context,
+                                             const CommunicationMessage_t *message)
+{
+    SecureCommunicationTxState_t txState;
+    SecureTransportStatus_t secureStatus;
+    bool messageComplete = false;
+    const CommunicationRoute_t *route = FindRoute(context, message->destinationId);
     if (route == NULL)
     {
         return COMMUNICATION_ROUTE_NOT_FOUND;
     }
 
     secureStatus = SecureCommunication_BeginMessage(context->secure,
-                                                    message.destinationId,
-                                                    message.messageType,
-                                                    message.payload,
-                                                    message.payloadLength,
+                                                    message->destinationId,
+                                                    message->messageType,
+                                                    message->payload,
+                                                    message->payloadLength,
                                                     &txState);
     context->lastSecureStatus = secureStatus;
 
@@ -367,7 +385,7 @@ static CommunicationStatus_t ProcessTx(Communication_t *context)
         if (linkStatus != COMMUNICATION_LINK_OK)
         {
             if (UsbDebug_IsVerbose()) DebugPrintf("CAR TX failed type=0x%02X len=%u link=%s\r\n",
-                (unsigned)message.messageType, (unsigned)message.payloadLength,
+                (unsigned)message->messageType, (unsigned)message->payloadLength,
                 CommunicationLink_StatusToString(linkStatus));
             return COMMUNICATION_PROCESS_LINK_ERROR;
         }

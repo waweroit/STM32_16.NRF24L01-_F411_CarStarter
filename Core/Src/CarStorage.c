@@ -3,6 +3,7 @@
  * intact until a verified newer record exists in the other sector. */
 #include "CarStorage.h"
 #include "CarConfig.h"
+#include "CarProtocol.h"
 #include <string.h>
 #define MAGIC 0x43535431u
 #define COMMIT 0x434F4D54u
@@ -10,10 +11,12 @@
 typedef struct {
     uint32_t magic, version, sequence;
     CarStoredData data;
-    uint32_t reserved[5];
+    /* Progi zajmują pierwszy dawny wyraz reserved, który miał wartość 0. */
+    uint32_t reserved[4];
     uint32_t crc, commit;
 } Record;
-_Static_assert(sizeof(Record) == RECORD_SIZE, "Storage layout");
+/* Sprawdzenie rozmiaru rekordu podczas kompilacji, także w trybie C99. */
+typedef char RecordSizeMustMatchStorageLayout[(sizeof(Record) == RECORD_SIZE) ? 1 : -1];
 static W25Q_HandleTypeDef *device;
 static CarStoredData current;
 static uint32_t sequence, latestAddress;
@@ -41,7 +44,9 @@ static bool Valid(const Record *r)
     return r->magic == MAGIC && r->version == 1u && r->commit == COMMIT &&
            r->sequence != 0u && r->crc == Crc((const uint8_t *)r, sizeof(*r)-8u) &&
            r->data.stopSeconds >= CAR_MIN_STOP_SECONDS && r->data.stopSeconds <= CAR_MAX_STOP_SECONDS &&
-           r->data.bootCounter <= 0xFFFFFFu && r->data.rootInitialized <= 1u;
+           r->data.bootCounter <= 0xFFFFFFu && r->data.rootInitialized <= 1u &&
+           ((!r->data.runningMv && !r->data.stoppedMv) ||
+            Car_ThresholdsValid(r->data.runningMv, r->data.stoppedMv));
 }
 /** Przeszukuje dwa sektory pamięci flash i odtwarza dane z najnowszego poprawnego rekordu.
  * Zwraca false przy błędzie odczytu lub gdy zajęta pamięć nie zawiera poprawnego rekordu. */
@@ -62,6 +67,10 @@ bool CarStorage_Init(W25Q_HandleTypeDef *flash)
     if (!haveRecord) {
         memset(&current, 0, sizeof(current));
         current.stopSeconds = CAR_DEFAULT_STOP_SECONDS;
+    }
+    if (!current.runningMv && !current.stoppedMv) {
+        current.runningMv = CAR_DEFAULT_RUNNING_MV;
+        current.stoppedMv = CAR_DEFAULT_STOPPED_MV;
     }
     ready = true;
     return true;

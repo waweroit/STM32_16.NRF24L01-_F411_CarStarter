@@ -20,8 +20,8 @@ typedef struct {
     CarEngineStatus status;
     CarEnginePhase phase;
     uint32_t phaseAt, startedAt, buttonStopAt, timeoutSeconds, request;
-    uint16_t beforeMv;
-    bool autoStop, buttonStop, takeover;
+    uint16_t runningMv, stoppedMv;
+    bool autoStop, buttonStop, takeover, lastKnownRunning;
 } CarEngine;
 void CarEngine_Init(CarEngine *e, const CarEngineIo *io, uint32_t seconds);
 CarResult CarEngine_Start(CarEngine *e, uint32_t now, uint16_t mv, bool valid, uint32_t request);
@@ -30,6 +30,7 @@ void CarEngine_Process(CarEngine *e, uint32_t now, uint16_t mv, bool valid);
 void CarEngine_SingleClick(CarEngine *e);
 void CarEngine_DoubleClick(CarEngine *e, uint32_t now);
 void CarEngine_SetTimeout(CarEngine *e, uint32_t seconds);
+void CarEngine_SetThresholds(CarEngine *e, uint16_t runningMv, uint16_t stoppedMv);
 uint16_t CarEngine_Remaining(const CarEngine *e, uint32_t now);
 bool CarEngine_NeedsAwake(const CarEngine *e);
 #endif

@@ -11,7 +11,8 @@ parametry sprzętowe i czasy w `Core/Inc/CarConfig.h`.
   około 90 s plus obsługa peryferiów; raporty w spoczynku nie są co 60 s.
 - RTC: LSI, preskalery 127/249, Wakeup Counter 59. Dokładność zależy od LSI.
   Timer RTC jest uzbrajany bezpośrednio przed STOP. PB12 także wybudza MCU.
-- Podczas rozruchu i odliczania gaszenia nie ma STOP. Raporty co 60 s.
+- Podczas pracy silnika, rozruchu i odliczania gaszenia MCU oraz radio są
+  aktywne. Token READY odnawia się co 30 s, a raport pojawia się co 60 s.
 - Po inicjalizacji USB sterownik czeka 10 s na ponowne otwarcie portu COM.
   Opóźnienie dotyczy startu MCU, także w zwykłym Debug i Release.
 - USB domyślnie pozwala na STOP (`CAR_USB_KEEP_AWAKE=0`). Podczas STOP USB
@@ -31,28 +32,35 @@ parametry sprzętowe i czasy w `Core/Inc/CarConfig.h`.
 
 Po uwierzytelnionym START z aktualnym tokenem okna i nowym request ID:
 
-1. Sprawdzenie świeżego ADC, stanu silnika oraz trwałego zapisu request ID.
+1. Sprawdzenie świeżego ADC i stanu silnika. Trwały zapis request ID i czasu
+   pracy, jeśli START zawiera liczbę minut. Po zapisie ponownie sprawdzane
+   jest okno.
 2. PB9 HIGH — zasilanie kluczyka; 200 ms oczekiwania.
-3. PA15 HIGH na 2200 ms, następnie LOW.
-4. Obserwacja napięcia do 15 s; wcześniejsze zakończenie powyżej 13,4 V.
-5. PB9 LOW. Sukces: wzrost >400 mV oraz napięcie >=12,9 V.
-6. Uruchomienie lokalnego czasu gaszenia. Jeżeli napięcie wskazuje pracę silnika,
-   ale wzrost jest niejednoznaczny, raportowany jest START_FAILED, a odliczanie
-   mimo to pozostaje aktywne (o ile użytkownik go nie anulował).
+3. PA15 HIGH na 2200 ms, następnie LOW. PB9 pozostaje w stanie HIGH.
+4. Po zakończeniu impulsu PA15 CarStarter czeka maksymalnie 15 s na ważny pomiar
+   równy zapisanemu progowi pracy (`runningMv`) lub wyższy. PB9 pozostaje w stanie HIGH.
+5. CarStarter wyłącza PB9 po potwierdzeniu rozruchu lub po upływie 15 s.
+6. Po potwierdzeniu CarStarter uruchamia lokalny timer gaszenia, o ile użytkownik
+   go nie anulował. Po upływie 15 s bez potwierdzenia zgłasza `START_FAILED`.
+7. Wysłanie wyniku i nowej telemetrii o stanie silnika oraz odliczaniu.
 
 Pracę silnika **szacujemy z napięcia**, bez sygnału obrotów/alternatora:
->=12,9 V oznacza pracę, <12,6 V oznacza zatrzymanie; pomiędzy progami stan jest
-podtrzymywany. Nie stanowi to niezależnego potwierdzenia mechanicznej pracy.
+Domyślnie napięcie >=12,90 V oznacza pracę, a <12,86 V oznacza zatrzymanie.
+W przedziale pomiędzy progami podtrzymywany jest poprzedni stan. Nieprawidłowy
+ADC daje stan `unknown`. Po wykryciu pracy MCU i radio pozostają wtedy aktywne
+do potwierdzenia zatrzymania.
 Kolejny START przy pracy silnika jest odrzucany. Nie dodano arbitralnego progu
 minimalnego napięcia do rozruchu (`CAR_MIN_START_MV=0`).
 
-Gaszenie: impuls PA15 2200 ms i sprawdzenie napięcia po 5 s. Nigdy nie ponawia
-impulsu samoczynnie. Gdy silnik jest już rozpoznany jako zatrzymany, odliczanie
+Gaszenie używa jednego impulsu PA15 o długości 2200 ms. Od 5 do 15 s po
+impulsie sterownik szuka ważnego pomiaru poniżej ustawionego progu zatrzymania.
+Gdy silnik jest już rozpoznany jako zatrzymany, odliczanie
 jest anulowane bez impulsu; przy braku świeżego ADC raportowany jest błąd.
 Utrata łączności nie zatrzymuje lokalnego odliczania.
 
-W trakcie faz rozruchu i gaszenia RX jest odroczony, aby kasowanie sektora NOR
-nie wydłużało impulsów przekaźników. Odpowiedzi TX są nadal obsługiwane.
+Podczas rozruchu i impulsu gaszenia RX jest odroczony, aby kasowanie sektora NOR
+nie wydłużało załączenia przekaźników. Odpowiedzi TX są nadal obsługiwane,
+a RX wraca na czas weryfikacji napięcia po impulsie gaszenia.
 Operacje SPI mają ograniczone czasy oczekiwania; transmisje RF mogą wprowadzić
 opóźnienie do około 30 ms. Nie jest to sterowanie o gwarantowanej latencji.
 
@@ -89,9 +97,9 @@ zasilania, przed inicjalizacją USB i wybudzeniem pamięci. Po ustawieniu PA1
 w stan wysoki odczekuje dodatkowo 200 ms przed inicjalizacją nRF24L01.
 Pełne 30-sekundowe okno odbioru jest liczone od gotowości radia. Odzyskiwanie
 radia po błędzie w trwającym oknie zachowuje jego dotychczasowy termin.
-Po zamknięciu okna kończy wysyłanie oczekujących odpowiedzi
-i zeruje PWR_UP radia z odczytem kontrolnym, po czym ustawia PA1 w stan niski,
-również przy aktywnym MCU. Power-down działa także przy stałym zasilaniu nRF.
+Gdy silnik wymaga aktywności, po 30 s zmienia się token okna bez wyłączania
+radia. W spoczynku po zakończeniu okna sterownik wysyła oczekujące odpowiedzi,
+zeruje PWR_UP radia z odczytem kontrolnym i ustawia PA1 w stan niski.
 Kolejny raport lub wynik
 operacji może ponownie otworzyć okno. W STOP radio pozostaje wyłączone, W25Q64
 przechodzi w Deep Power Down, ADC i TIM1 są zatrzymywane, a USB odłączane.
@@ -115,6 +123,8 @@ przechodzi w Deep Power Down, ADC i TIM1 są zatrzymywane, a USB odłączane.
   `CommunicationDevices`; Root musi używać identycznego klucza i adresu.
 - START ma token bieżącej sesji i okna oraz request ID. Nie wolno ponawiać tego
   samego zamierzonego START z nowym request ID. Ostatni przyjęty ID jest trwały.
+- STOP również niesie request ID. Odpowiedzi STOP zawierają ID i sesję Secure
+  ROOT. Do obsługi nowej ramki STOP trzeba zaktualizować oba firmware’y.
 - Przy resecie MCU wyjścia wracają do LOW, timery silnika nie są wznawiane.
   Silnik pozostający włączony po resecie będzie tylko wykrywany i raportowany.
   Podwójny klik może uruchomić jego lokalne gaszenie.
@@ -125,24 +135,43 @@ Szczegółowy format: [Integration/ROOT_PROTOCOL.md](Integration/ROOT_PROTOCOL.m
 Projekt Root obsługuje MeasurementUnit i CarStartera przez moduł RootCar.
 Pomocniczy klient integracyjny znajduje się w `Integration/RootCarClient.c/.h`.
 
+Na USB ROOT polecenie `car thresholds 12960 12950` zapisuje oba progi w mV
+w W25Q64 CarStartera. Dla tych ustawień silnik jest rozpoznany jako pracujący
+od 12,960 V, a jako zatrzymany poniżej 12,950 V. Polecenie `car thresholds`
+odczytuje bieżące wartości. Zapis progów jest dostępny poza sekwencją
+rozruchu lub gaszenia i poza odliczaniem do zgaszenia.
+Raport po uruchomieniu i wybudzeniu składa się z telemetrii `0x29`, limitu
+gaszenia `0x2B` i końcowego `READY` (`0x28`). CarStarter odpowiada ramką
+`0x2E` po odczycie lub po zapisaniu progów na żądanie ROOT.
+
 ## Logi diagnostyczne
+
+Port COM CarStartera pokazuje domyślnie wszystkie kompletne, uwierzytelnione
+wiadomości odebrane z radia (`[RX]`) oraz wynik każdej próby wysłania wiadomości
+(`[TX]` lub `[TX FAIL]`). Każdy wpis zawiera czas HAL w ms, identyfikatory nadawcy i
+odbiorcy, typ, długość w bajtach i pełne dane w HEX. Gdy kolejka USB się
+zapełni, sterownik pomija nowe wpisy, aby nie blokować radia.
+
+`[RX FRAGMENT]` oznacza odebrany fragment oczekujący na resztę wiadomości,
+`[RX REJECTED]` podaje przyczynę odrzucenia ramki, a `[RX LINK ERROR]` wskazuje
+błąd odczytu z radia. Do sprawdzenia odbioru można wysłać `car status` na COM
+ROOT. Po odebraniu READY ROOT nada polecenie `0x22` do CarStartera.
 
 Na porcie USB ROOT można wysłać `car debug on` lub `car debug off`.
 Root czeka na READY, wysyła uwierzytelnione SET_DEBUG (0x27) z jednym bajtem
 01 lub 00 i czeka na odpowiedź z aktualną wartością. Potwierdzenie na ROOT ma
 postać `CAR debug ON confirmed` albo `CAR debug OFF confirmed`.
 
-Szczegółowe logi są domyślnie wyłączone. Włączenie pokazuje na USB CarStartera
-odebrane komendy, kolejki i błędy TX, otwieranie/zamykanie okna, STOP/wybudzenie
-oraz rejestry radia i adresy ACK po błędzie transmisji. Podstawowe błędy
-komunikacji/pamięci i komunikat inicjalizacji pozostają dostępne.
+Szczegółowe logi są domyślnie wyłączone. Włączenie dodaje informacje o oknie
+radiowym, STOP i wybudzeniu, rejestrach radia i adresach ACK po błędzie
+transmisji. Podstawowe błędy komunikacji i pamięci oraz komunikat inicjalizacji
+są dostępne w obu trybach.
 
 Wartość jest przechowywana w RAM i zachowywana podczas STOP. Po resecie
 MCU logowanie szczegółowe wraca do OFF. Parametr nie jest zapisywany jako
 ustawienie trwałe i nie zmienia cyklu snu ani czasu gaszenia.
 
-Usunięto wariant ciągle aktywnego radia i opcję budowania `--radio-test`.
-Do pracy i diagnostyki używa się zwykłego projektu Debug lub Release.
+Do pracy i diagnostyki radia używa się zwykłego projektu Debug lub Release.
 
 ## Budowanie i weryfikacja
 

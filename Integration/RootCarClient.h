@@ -13,5 +13,7 @@ bool RootCarClient_OnMessage(RootCarClient *client, const CommunicationMessage_t
 bool RootCarClient_Request(Communication_t *comm, uint8_t requestType);
 bool RootCarClient_Start(RootCarClient *client, Communication_t *comm, uint32_t now, uint32_t requestId);
 bool RootCarClient_SetTimeout(RootCarClient *client, Communication_t *comm, uint32_t now, uint16_t seconds);
-bool RootCarClient_Stop(RootCarClient *client, Communication_t *comm, uint32_t now);
+bool RootCarClient_SetThresholds(RootCarClient *client, Communication_t *comm, uint32_t now,
+                                uint16_t runningMv, uint16_t stoppedMv);
+bool RootCarClient_Stop(RootCarClient *client, Communication_t *comm, uint32_t now, uint32_t requestId);
 #endif

@@ -1,5 +1,6 @@
 #ifndef CAR_PROTOCOL_H
 #define CAR_PROTOCOL_H
+#include <stdbool.h>
 #include <stdint.h>
 #define CAR_MSG_GET_TEMPERATURE 0x20u
 #define CAR_MSG_GET_VOLTAGE     0x21u
@@ -13,6 +14,18 @@
 #define CAR_MSG_TELEMETRY       0x29u
 #define CAR_MSG_RESULT          0x2Au
 #define CAR_MSG_TIMEOUT         0x2Bu
+#define CAR_MSG_SET_THRESHOLDS  0x2Cu
+#define CAR_MSG_GET_THRESHOLDS  0x2Du
+#define CAR_MSG_THRESHOLDS      0x2Eu
+#define CAR_MAX_THRESHOLD_MV    16000u
+#define CAR_ENGINE_RESULT_MS    25000u
+#define CAR_START_MAX_MINUTES   30u
+
+static inline bool Car_ThresholdsValid(uint16_t runningMv, uint16_t stoppedMv)
+{
+    return stoppedMv > 0u && stoppedMv < runningMv && runningMv <= CAR_MAX_THRESHOLD_MV;
+}
+
 /* Wire format always big endian. No raw C structs or floats on the radio. */
 /** Odczytuje 16-bitową liczbę z dwóch bajtów bufora p w kolejności sieciowej. */
 static inline uint16_t Car_Get16(const uint8_t *p) { return (uint16_t)((uint16_t)p[0]<<8)|p[1]; }

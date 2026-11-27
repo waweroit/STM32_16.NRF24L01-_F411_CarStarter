@@ -31,7 +31,7 @@ static bool Token(RootCarClient *c, uint32_t now, uint8_t *p)
 bool RootCarClient_Request(Communication_t *comm, uint8_t type)
 {
     if (type!=CAR_MSG_GET_TEMPERATURE && type!=CAR_MSG_GET_VOLTAGE &&
-        type!=CAR_MSG_GET_STATUS && type!=CAR_MSG_GET_TIMEOUT) return false;
+        type!=CAR_MSG_GET_STATUS && type!=CAR_MSG_GET_TIMEOUT && type!=CAR_MSG_GET_THRESHOLDS) return false;
     return Communication_Send(comm,CAR_ID,(SecureMessageType_t)type,NULL,0u);
 }
 /** Kolejkuje przez comm żądanie startu z niezerowym identyfikatorem id. Używa okna klienta c
@@ -52,10 +52,20 @@ bool RootCarClient_SetTimeout(RootCarClient *c, Communication_t *comm, uint32_t 
     Car_Put16(data+6,seconds);
     return Communication_Send(comm,CAR_ID,(SecureMessageType_t)CAR_MSG_SET_TIMEOUT,data,sizeof(data));
 }
+bool RootCarClient_SetThresholds(RootCarClient *c, Communication_t *comm, uint32_t now,
+                                uint16_t runningMv, uint16_t stoppedMv)
+{
+    uint8_t data[10];
+    if (!Car_ThresholdsValid(runningMv,stoppedMv) || !Token(c,now,data)) return false;
+    Car_Put16(data+6,runningMv); Car_Put16(data+8,stoppedMv);
+    return Communication_Send(comm,CAR_ID,(SecureMessageType_t)CAR_MSG_SET_THRESHOLDS,data,sizeof(data));
+}
 /** Kolejkuje przez comm polecenie gaszenia, używając okna klienta c ważnego w chwili now
  * (ms). Zwraca true po przyjęciu polecenia do kolejki. */
-bool RootCarClient_Stop(RootCarClient *c, Communication_t *comm, uint32_t now)
+bool RootCarClient_Stop(RootCarClient *c, Communication_t *comm, uint32_t now, uint32_t requestId)
 {
-    uint8_t data[6];
-    return Token(c,now,data) && Communication_Send(comm,CAR_ID,(SecureMessageType_t)CAR_MSG_STOP,data,sizeof(data));
+    uint8_t data[10];
+    if (!requestId || !Token(c,now,data)) return false;
+    Car_Put32(data+6,requestId);
+    return Communication_Send(comm,CAR_ID,(SecureMessageType_t)CAR_MSG_STOP,data,sizeof(data));
 }

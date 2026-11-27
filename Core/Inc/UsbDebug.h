@@ -8,9 +8,6 @@
 extern "C" {
 #endif
 
-#define USB_DEBUG_MESSAGE_SIZE 256u
-#define USB_DEBUG_QUEUE_DEPTH   4u
-
 typedef struct
 {
     uint32_t queuedCount;

@@ -13,7 +13,7 @@ from unicorn.arm_const import UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_R0
 out = ROOT/"build/tests"
 out.mkdir(parents=True, exist_ok=True)
 elf = out/"tests.elf"
-sources = ["tests/test_core.c", "tests/test_button.c", "Core/Src/CarButton.c", "tests/test_sensors.c", "tests/test_radio.c",
+sources = ["tests/test_core.c", "tests/test_start.c", "tests/test_button.c", "Core/Src/CarButton.c", "tests/test_sensors.c", "tests/test_radio.c",
            "Core/Src/nRF24L01.c", "Core/Src/NrfLink.c", "Core/Src/CarSensors.c",
            "Core/Src/ow.c", "Core/Src/ds18b20.c", "Core/Src/CarEngine.c", "Core/Src/CarStorage.c",
            "Core/Src/SecureProtocol.c", "Core/Src/DeviceKeys.c", "Core/Src/Crypto.c", "Core/Src/tiny_aes.c"]
@@ -41,7 +41,7 @@ uc.reg_write(UC_ARM_REG_LR,0x90001)
 uc.emu_start(entry | 1,0x90000,count=500_000_000)
 result=uc.reg_read(UC_ARM_REG_R0)
 group=int.from_bytes(uc.mem_read(stage,4),"little")
-if result or group!=7:
+if result or group!=8:
     raise SystemExit(f"FAIL stage={group}, test source line={result}")
-print("PASS: engine sequencing/timers/rollover; NOR journal rotations + 128 power cuts; authenticated frames/replay/reset; DS18B20 startup, suspend and error recovery; NRF cold initialization and retry; button wake backlog, debounce, long press, overflow and rollover.")
+print("PASS: START request and timer; engine sequencing/timers/rollover; NOR journal rotations + 128 power cuts; authenticated frames/replay/reset; DS18B20 startup, suspend and error recovery; NRF cold initialization and retry; button wake backlog, debounce, long press, overflow and rollover.")
 

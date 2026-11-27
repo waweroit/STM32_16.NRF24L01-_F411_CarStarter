@@ -1,11 +1,14 @@
 #include "UsbDebug.h"
 
-#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "SecureTransport.h"
 #include "usbd_cdc_if.h"
+
+#define USB_DEBUG_MESSAGE_SIZE (96u + 2u * SECURE_TRANSPORT_MAX_MESSAGE_SIZE)
+#define USB_DEBUG_QUEUE_DEPTH  8u
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
@@ -36,7 +39,6 @@ bool UsbDebug_IsVerbose(void) { return verbose; }
 
 void Debug(const char *msg)
 {
-    UsbDebugMessage_t message;
     size_t length;
 
     if (msg == NULL || !initialized)
@@ -55,13 +57,12 @@ void Debug(const char *msg)
         length = USB_DEBUG_MESSAGE_SIZE;
     }
 
-    message.length = (uint16_t)length;
-    memcpy(message.data, msg, length);
-
     /* Logging must never block a real-time task. */
     if (count < USB_DEBUG_QUEUE_DEPTH)
     {
-        queue[(head + count) % USB_DEBUG_QUEUE_DEPTH] = message;
+        UsbDebugMessage_t *message = &queue[(head + count) % USB_DEBUG_QUEUE_DEPTH];
+        message->length = (uint16_t)length;
+        memcpy(message->data, msg, length);
         ++count;
         ++gUsbDebugStats.queuedCount;
     }
@@ -102,56 +103,38 @@ void DebugMessage(const char *direction,
                   const uint8_t *payload,
                   uint16_t payloadLength)
 {
+    static const char hex[] = "0123456789ABCDEF";
     char buffer[USB_DEBUG_MESSAGE_SIZE];
-    size_t used;
-    uint16_t i;
-    int written;
-
-    if (direction == NULL)
-    {
-        direction = "MSG";
-    }
-
-    written = snprintf(buffer,
-                       sizeof(buffer),
-                       "[%s] SRC=0x%02X DST=0x%02X TYPE=0x%02X LEN=%u DATA=\"",
-                       direction,
-                       sourceId,
-                       destinationId,
-                       messageType,
-                       (unsigned int)payloadLength);
-    if (written <= 0)
+    if (payloadLength > 0u && payload == NULL)
     {
         return;
     }
 
-    used = (size_t)written;
-    if (used >= sizeof(buffer))
+    int written = snprintf(buffer, sizeof(buffer),
+                           "[%s] t=%lums SRC=0x%02X DST=0x%02X TYPE=0x%02X LEN=%u DATA=",
+                           direction != NULL ? direction : "MSG", (unsigned long)HAL_GetTick(),
+                           (unsigned)sourceId, (unsigned)destinationId, (unsigned)messageType,
+                           (unsigned)payloadLength);
+    if (written < 0 || (size_t)written + 2u * payloadLength + 3u > sizeof(buffer))
     {
-        buffer[sizeof(buffer) - 1u] = '\0';
-        Debug(buffer);
         return;
     }
 
-    for (i = 0u; i < payloadLength && used < (sizeof(buffer) - 4u); ++i)
+    size_t used = (size_t)written;
+    for (uint16_t i = 0u; i < payloadLength; ++i)
     {
-        uint8_t value = payload != NULL ? payload[i] : 0u;
-        buffer[used++] = isprint((int)value) ? (char)value : '.';
+        buffer[used++] = hex[payload[i] >> 4];
+        buffer[used++] = hex[payload[i] & 0x0Fu];
     }
 
-    buffer[used++] = '"';
-    buffer[used++] = '\r';
-    buffer[used++] = '\n';
-    buffer[used] = '\0';
+    memcpy(&buffer[used], "\r\n", sizeof("\r\n"));
     Debug(buffer);
 }
 
 void UsbDebug_Process(void)
 {
     USBD_CDC_HandleTypeDef *hcdc;
-    UsbDebugMessage_t message;
-
-    if (!initialized ||
+    if (!initialized || count == 0u ||
         hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED)
     {
         return;
@@ -163,16 +146,26 @@ void UsbDebug_Process(void)
         return;
     }
 
-    if (count == 0u)
+    const UsbDebugMessage_t *message = &queue[head];
+    memcpy(usbDebugTxBuffer, message->data, message->length);
+
+    /* A USB reset interrupt can clear pClassData while CDC starts the transfer. */
+    uint32_t mask = __get_PRIMASK();
+    __disable_irq();
+    uint8_t status = USBD_BUSY;
+    if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED && hUsbDeviceFS.pClassData != NULL)
+    {
+        status = CDC_Transmit_FS(usbDebugTxBuffer, message->length);
+    }
+    __set_PRIMASK(mask);
+    if (status == USBD_BUSY)
     {
         return;
     }
 
-    message = queue[head];
     head = (head + 1u) % USB_DEBUG_QUEUE_DEPTH;
     --count;
-    memcpy(usbDebugTxBuffer, message.data, message.length);
-    if (CDC_Transmit_FS(usbDebugTxBuffer, message.length) == USBD_OK)
+    if (status == USBD_OK)
     {
         ++gUsbDebugStats.sentCount;
     }

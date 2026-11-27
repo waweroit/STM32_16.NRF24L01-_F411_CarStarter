@@ -8,6 +8,7 @@ typedef struct {
     uint32_t rootCounter;
     uint32_t lastStartRequest;
     uint32_t rootInitialized;
+    uint16_t runningMv, stoppedMv;
 } CarStoredData;
 bool CarStorage_Init(W25Q_HandleTypeDef *flash);
 const CarStoredData *CarStorage_Get(void);

@@ -3,5 +3,5 @@
 ../Core/Src/SecureCommunication.c:90:25:SecureCommunication_BeginMessage	3
 ../Core/Src/SecureCommunication.c:111:25:SecureCommunication_CreateNextFrame	3
 ../Core/Src/SecureCommunication.c:132:25:SecureCommunication_ProcessFrame	13
-../Core/Src/SecureCommunication.c:170:24:SecureCommunication_GetLastProtocolStatus	2
-../Core/Src/SecureCommunication.c:181:6:SecureCommunication_IsInitialized	3
+../Core/Src/SecureCommunication.c:173:24:SecureCommunication_GetLastProtocolStatus	2
+../Core/Src/SecureCommunication.c:184:6:SecureCommunication_IsInitialized	3

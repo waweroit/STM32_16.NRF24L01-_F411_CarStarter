@@ -144,7 +144,10 @@ SecureTransportStatus_t SecureCommunication_ProcessFrame(
         return SECURE_TRANSPORT_INVALID_ARGUMENT;
     }
 
-    if (!CarStorage_Ready()) return SECURE_TRANSPORT_PROTOCOL_ERROR;
+    if (!CarStorage_Ready()) {
+        context->transport.lastProtocolStatus = SECURE_PROTOCOL_STORAGE_ERROR;
+        return SECURE_TRANSPORT_PROTOCOL_ERROR;
+    }
     SecureTransportStatus_t result = SecureTransport_ProcessFrame(&context->transport,
         frame, frameLength, messageType, message, messageBufferSize, messageLength, sourceDeviceId);
     if (result == SECURE_TRANSPORT_OK || result == SECURE_TRANSPORT_IN_PROGRESS) {
